@@ -19,7 +19,7 @@ parser.add_argument('--test_file',default='./data/dev_task_a_entries.csv')
 parser.add_argument('--test_output_csv', type=str, default='./bert_result.csv')
 parser.add_argument('--batch_size', type = int, default =32)
 parser.add_argument('--num_workers', default=4, type=int, help="num_workers for dataloaders")
-parser.add_argument('--labeltype', default='label_sexist')
+parser.add_argument('--labeltype', default='label_sexist',help="assign label for classification task")
  # ========================== BERT =============================
 parser.add_argument('--bert_dir', type=str, default='bert-base-uncased')
 parser.add_argument('--test_bert_dir', type=str, default='bert-base-uncased')
