@@ -13,86 +13,85 @@ class Run():
         self.le=LabelEncoder()
         raw_data=pd.read_csv(args.train_file)
         self.le.fit(raw_data[args.labeltype])
+        self.args=args
 
-    def train_and_validate(args):
+    def train_and_validate(self):
         # 1. load data
-        if not os.path.exists(f'{args.savedmodel_path}'): os.makedirs(f'{args.savedmodel_path}')
-        train_dataloader, val_dataloader = create_train_dataloaders(args,self.le)
+        if not os.path.exists(f'{self.args.savedmodel_path}'): os.makedirs(f'{self.args.savedmodel_path}')
+        train_dataloader, val_dataloader = create_train_dataloaders(self.args,self.le)
         # 2. build model and optimizers
-        model = BertModel(args)
-        #这里model写if载入
-        optimizer, scheduler = build_optimizer(args, model)
-        if args.device == 'cuda':
-            model = torch.nn.parallel.DataParallel(model.to(args.device))
+        if self.args.model_name=='bert':
+            model = BertModel(self.args)
+        elif self.args.model_name=='roberta':
+            model = RoBertaModel(self.args)
+       
+        optimizer, scheduler = build_optimizer(self.args, model)
+        model.to(self.args.device)
+        fgm, pgd = None, None
+        if self.args.attack == 'fgm':
+            fgm = FGM(model=model)
+            print('fgming')
+        elif self.args.attack == 'pgd':
+            pgd = PGD(model=model)
+            pgd_k = 3
+            print('pgding')
         # 3. training
         step = 0
-        best_score = args.best_score
+        best_score = self.args.best_score
         start_time = time.time()
         print('len(train_dataloader): ', len(train_dataloader))
-        num_total_steps = len(train_dataloader) * args.max_epochs
+        num_total_steps = len(train_dataloader) * self.args.max_epochs
         #打印checkpoint值，输出整体loss
-        for epoch in range(args.max_epochs):
+        update=0
+        for epoch in range(self.args.max_epochs):
+            if update>=self.args.early_stop:
+                break
             for i, batch in enumerate(train_dataloader):
                 model.train()
                 optimizer.zero_grad()
                 loss, pred_label = model(batch)
                 loss.backward()
-                # if fgm is not None:
-                #     fgm.attack()
-                #     if args.use_fp16:
-                #         with ac():
-                #             loss_adv, _, _, _ = model(batch)
-                #     else:
-                #         loss_adv, _, _, _ = model(batch)
-                #     loss_adv = loss_adv.mean()
-                #     if args.use_fp16:
-                #         scaler.scale(loss_adv).backward()
-                #     else:
-                #         loss_adv.backward()
-                #     fgm.restore()
-                # elif pgd is not None:
-                #     pgd.backup_grad()
-                #     for _t in range(pgd_k):
-                #         pgd.attack(is_first_attack=(_t == 0))
-                #         if _t != pgd_k - 1:
-                #             model.zero_grad()
-                #         else:
-                #             pgd.restore_grad()
-                #         if args.use_fp16:
-                #             with ac():
-                #                 loss_adv, _, _, _ = model(batch)
-                #         else:
-                #             loss_adv, _, _, _ = model(batch)
-                #         loss_adv = loss_adv.mean()
-                #         if args.use_fp16:
-                #             scaler.scale(loss_adv).backward()
-                #         else:
-                #             loss_adv.backward()
-                #     pgd.restore()
+                if fgm is not None:
+                    loss_adv, _ = model(batch)
+                    loss_adv.backward()
+                    fgm.restore()
+                elif pgd is not None:
+                    pgd.backup_grad()
+                    for _t in range(pgd_k):
+                        pgd.attack(is_first_attack=(_t == 0))
+                        if _t != pgd_k - 1:
+                            model.zero_grad()
+                        else:
+                            pgd.restore_grad()
+                        loss_adv, _ = model(batch)
+                        loss_adv.backward()
+                    pgd.restore()
                 optimizer.step()
                 model.zero_grad()
                 scheduler.step()
                 step += 1
-                if step % args.print_steps == 0:
+                if step % self.args.print_steps == 0:
                     time_per_step = (time.time() - start_time) / max(1, step)
                     remaining_time = time_per_step * (num_total_steps - step)
                     remaining_time = time.strftime('%H:%M:%S', time.gmtime(remaining_time))
                     print_loss=loss.mean()
                     logging.info(f"Epoch {epoch} step {step} eta {remaining_time}: loss {print_loss:.3f}")
             # 4. validation
-            loss, results = validate(model, val_dataloader)
+            loss, results = self.validate(model, val_dataloader)
             results = {k: round(v, 4) for k, v in results.items()}
             logging.info(f"Epoch {epoch} step {step}: loss {loss:.3f}, {results}")
             # 5. save checkpoint
             mean_f1 = results['f1_macro']
+            update=update+1
             if mean_f1 > best_score:
                 best_score = mean_f1
                 logging.info('best_score: ', best_score)
+                update=0
                 torch.save({'epoch': epoch, 'model_state_dict': model.state_dict(), 'mean_f1': mean_f1},
-                        f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')
+                        f'{self.args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')
         
     
-    def validate(model, val_dataloader):
+    def validate(self,model, val_dataloader):
         model.eval()
         predictions = []
         labels = []
@@ -109,37 +108,43 @@ class Run():
         model.train()
         return loss, results
 
-    def inference(args):
-        dataloader = create_test_dataloaders(args)
+    def inference(self):
+        dataloader = create_test_dataloaders(self.args)
         # 2. load model
-        model = BertModel(args)
-        checkpoint = torch.load(args.ckpt_file, map_location='cpu')
-        new_key = model.load_state_dict(checkpoint['model_state_dict'],strict=False)
-        # model.half()
-        if torch.cuda.is_available():
-            model = torch.nn.parallel.DataParallel(model.cuda())
+        if self.args.model_name=='bert':
+            model = BertModel(self.args)
+        elif self.args.model_name=='roberta':
+            model = RoBertaModel(self.args)
+        print(model.state_dict())
+        checkpoint = torch.load(self.args.ckpt_file)
+        print(checkpoint)
+        model.load_state_dict(checkpoint['model_state_dict'],strict=False)
+        print(model.state_dict())
+        model.cuda()
         model.eval()
         # 3. inference
         predictions = []
+        id=[]
         with torch.no_grad():
-            for batch in tqdm(dataloader):
+            for batch in dataloader:
                 pred_label = model(batch,inference=True)
-                predictions.extend(pred_label)
+                predictions.extend(pred_label.cpu().numpy())
+                id.extend(batch['id'].cpu().numpy())
         # 4. dump results
-        with open(args.test_output_csv, 'w') as f:
+        with open(self.args.test_output_csv, 'w') as f:
             f.write(f'rewire_id,label_pred\n')
-            for pred_label, id in zip(predictions, dataloader.id):
-                pred_label=self.le.inverse_transform(predictions)
+            for pred_label, id in zip(self.le.inverse_transform(predictions), id):
                 sample_id = 'sexism2022_english-'+str(id)
                 f.write(f'{sample_id},{pred_label}\n')
 
-    def main(self,args):
-        setup_logging(args)
-        setup_device(args)
-        setup_seed(args)
-        os.makedirs(args.savedmodel_path, exist_ok=True)
-        logging.info("model parameters: %s", args)
-
-        train_and_validate(args)
-        # inference(args)
+    def main(self):
+        setup_logging(self.args)
+        setup_device(self.args)
+        setup_seed(self.args)
+        os.makedirs(self.args.savedmodel_path, exist_ok=True)
+        logging.info("model parameters: %s", self.args)
+        if self.args.mode=='train':
+            self.train_and_validate()
+        else:
+            self.inference()
         

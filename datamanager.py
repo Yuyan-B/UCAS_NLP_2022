@@ -1,5 +1,5 @@
 from sklearn.model_selection import  train_test_split,StratifiedShuffleSplit
-from transformers import BertTokenizer
+from transformers import BertTokenizer,RobertaTokenizer
 import torch
 import pandas as pd
 from torch.utils.data import DataLoader, Dataset
@@ -11,8 +11,10 @@ class TrainSexismDataset(Dataset):
         self.data['id']=self.data['rewire_id'].apply(lambda x:int(x[19:]))
         #对不同的TASK的标签编码
         self.data['label']=le.transform(self.data[args.labeltype])
-
-        self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir)
+        if "roberta" in args.bert_dir:
+            self.tokenizer = RobertaTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+        else:
+            self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
         
     def __len__(self):
         return self.data.shape[0]
@@ -40,7 +42,10 @@ class TestSexismDataset(Dataset):
         #将数据id转为整数
         self.data['id']=self.data['rewire_id'].apply(lambda x:int(x[19:]))
         
-        self.tokenizer = BertTokenizer.from_pretrained(args.test_bert_dir)
+        if "roberta" in args.bert_dir:
+            self.tokenizer = RobertaTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+        else:
+            self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
         
     def __len__(self):
         return self.data.shape[0]
@@ -65,7 +70,7 @@ def create_train_dataloaders(args,le):
     raw_data=pd.read_csv(args.train_file)
     train_set,val_set =  train_test_split(raw_data, test_size=0.2, stratify=raw_data[args.labeltype])
     dtrain=TrainSexismDataset(args,train_set,le)
-    dval=TrainSexismDataset(args,val_set)
+    dval=TrainSexismDataset(args,val_set,le)
     train_dataloader = DataLoader(dtrain, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)
     val_dataloader = DataLoader(dval, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)
     return train_dataloader, val_dataloader
