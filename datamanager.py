@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 import re
+import nltk
 
 def cleanText(text):
     def add_space(matched):
@@ -24,13 +25,13 @@ def cleanText(text):
         exit()#这里直接退出了
     content_tackled = ' '.join(wordtoken)
 
-
     def add_space_pre(matched):
         '''
         If word like "china." occured, split "china" and ".". 
         '''
         s = matched.group()
         return s[0] + ' ' + s[-1]
+        
     content_tackled = re.sub(r'[a-zA-Z][\.,;:!?/]+', add_space_pre, content_tackled)
     
     return content_tackled
