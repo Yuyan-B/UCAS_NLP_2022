@@ -1,3 +1,4 @@
+import os
 import torch
 import logging
 import random
@@ -16,11 +17,13 @@ def setup_seed(args):
     torch.manual_seed(args.seed)
 
 def setup_logging(args):
+    if not os.path.isdir(args.log_path):
+        os.makedirs(args.log_path)
     logging.basicConfig(
         format='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO,
-        filename='./log/%s_%s.log' % (args.model_name, args.labeltype),
+        filename=os.path.join(args.log_path, '%s_%s.log' % (args.model_name, args.labeltype)),
         filemode='a')
     logger = logging.getLogger(__name__)
     return logger

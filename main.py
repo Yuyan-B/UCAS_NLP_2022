@@ -43,7 +43,8 @@ parser.add_argument("--adam_epsilon", default=1e-6, type=float, help="Epsilon fo
 parser.add_argument('--savedmodel_path', type=str, default='./save')
 parser.add_argument('--ckpt_file', type=str, default='./save/model_epoch_2_mean_f1_0.8173.bin')
 parser.add_argument('--best_score', default=0.4, type=float, help='save checkpoint if mean_f1 > best_score')
-
+# ======================== Logging Configs =========================
+parser.add_argument('--log_path', type=str, default='./log')
 
 args = parser.parse_args()
 
