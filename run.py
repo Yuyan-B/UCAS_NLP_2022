@@ -7,6 +7,7 @@ from datamanager import *
 from sklearn.preprocessing import LabelEncoder
 from Model import *
 import os
+from tqdm import tqdm
 
 class Run():
     def __init__(self,args):
@@ -44,9 +45,10 @@ class Run():
         #打印checkpoint值，输出整体loss
         update=0
         for epoch in range(self.args.max_epochs):
+            print('----epoch %d----' % epoch)
             if update>=self.args.early_stop:
                 break
-            for i, batch in enumerate(train_dataloader):
+            for i, batch in enumerate(tqdm(train_dataloader)):
                 model.train()
                 optimizer.zero_grad()
                 loss, pred_label = model(batch)
@@ -97,7 +99,7 @@ class Run():
         labels = []
         losses = []
         with torch.no_grad():
-            for batch in val_dataloader:
+            for batch in tqdm(val_dataloader):
                 loss,pred_label = model(batch)
                 loss = loss.mean()
                 predictions.extend(pred_label.cpu().numpy())

@@ -19,12 +19,13 @@ def setup_seed(args):
 def setup_logging(args):
     if not os.path.isdir(args.log_path):
         os.makedirs(args.log_path)
+    file_handler = logging.FileHandler(os.path.join(args.log_path, '%s_%s.log' % (args.model_name, args.labeltype)), 'a')
+    console_handler = logging.StreamHandler()
     logging.basicConfig(
         format='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO,
-        filename=os.path.join(args.log_path, '%s_%s.log' % (args.model_name, args.labeltype)),
-        filemode='a')
+        handlers=[file_handler, console_handler])
     logger = logging.getLogger(__name__)
     return logger
 
