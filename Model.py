@@ -12,7 +12,7 @@ class BertModel(nn.Module):
             num_labels=4
         elif args.labeltype=='label_vector':
             num_labels=11
-        self.model = BertForSequenceClassification.from_pretrained(args.bert_dir, num_labels = num_labels)
+        self.model = BertForSequenceClassification.from_pretrained(args.bert_name, num_labels = num_labels, cache_dir=args.pretrain_cache)
         self.device=args.device
 
     def forward(self, batch,inference=False):
@@ -39,7 +39,7 @@ class RoBertaModel(nn.Module):
             num_labels=4
         elif args.labeltype=='label_vector':
             num_labels=11
-        self.model = RobertaForSequenceClassification.from_pretrained(args.bert_dir, num_labels = num_labels,cache_dir=args.bert_cache)
+        self.model = RobertaForSequenceClassification.from_pretrained(args.roberta_name, num_labels = num_labels, cache_dir=args.pretrain_cache)
         self.device=args.device
 
     def forward(self, batch,inference=False):

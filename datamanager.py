@@ -43,10 +43,10 @@ class TrainSexismDataset(Dataset):
         self.data['id']=self.data['rewire_id'].apply(lambda x:int(x[19:]))
         #对不同的TASK的标签编码
         self.data['label']=le.transform(self.data[args.labeltype])
-        if "roberta" in args.bert_dir:
-            self.tokenizer = RobertaTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+        if args.model_name=='roberta':
+            self.tokenizer = RobertaTokenizer.from_pretrained(args.roberta_name,cache_dir=args.pretrain_cache)
         else:
-            self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+            self.tokenizer = BertTokenizer.from_pretrained(args.bert_name,cache_dir=args.pretrain_cache)
         
     def __len__(self):
         return self.data.shape[0]
@@ -74,10 +74,10 @@ class TestSexismDataset(Dataset):
         #将数据id转为整数
         self.data['id']=self.data['rewire_id'].apply(lambda x:int(x[19:]))
         
-        if "roberta" in args.bert_dir:
-            self.tokenizer = RobertaTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+        if args.model_name=='roberta':
+            self.tokenizer = RobertaTokenizer.from_pretrained(args.roberta_name,cache_dir=args.pretrain_cache)
         else:
-            self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir,cache_dir=args.bert_cache)
+            self.tokenizer = BertTokenizer.from_pretrained(args.bert_name,cache_dir=args.pretrain_cache)
         
     def __len__(self):
         return self.data.shape[0]
