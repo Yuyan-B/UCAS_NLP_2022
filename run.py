@@ -87,7 +87,7 @@ class Run():
             update=update+1
             if mean_f1 > best_score:
                 best_score = mean_f1
-                logging.info('best_score: ', best_score)
+                logging.info(f'best_score: {best_score}')
                 update=0
                 torch.save({'epoch': epoch, 'model_state_dict': model.state_dict(), 'mean_f1': mean_f1},
                         f'{self.args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')

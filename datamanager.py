@@ -100,7 +100,7 @@ class TestSexismDataset(Dataset):
 
 def create_train_dataloaders(args,le):
     raw_data=pd.read_csv(args.train_file)
-    if args.labeltype=='label_sexist':
+    if args.labeltype != 'label_sexist':
         raw_data=raw_data[raw_data['label_sexist']=='sexist']
     train_set,val_set =  train_test_split(raw_data, test_size=0.2, stratify=raw_data[args.labeltype])
     dtrain=TrainSexismDataset(args,train_set,le)
