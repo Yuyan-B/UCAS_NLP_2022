@@ -49,7 +49,7 @@ class RoBertaModel(nn.Module):
             outputs = self.model(input_ids, attention_mask=attention_mask)
             logits= outputs[0]
             pred_label=torch.argmax(logits, dim=1)
-            return pred_label
+            return pred_label, logits
         else:
             labels = batch['label'].to(self.device)
             outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)

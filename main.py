@@ -24,6 +24,7 @@ parser.add_argument('--oversampling', default=False, action='store_true')
 parser.add_argument('--undersampling', default=False, action='store_true')
 parser.add_argument('--k_fold', default=False, action='store_true')
 parser.add_argument('--full_train', default=False, action='store_true')
+parser.add_argument('--write_prob', default=False, action='store_true', help="only valid in inference mode")
 # ========================== BERT =============================
 parser.add_argument('--bert_name', type=str, default='bert-base-uncased')
 parser.add_argument('--roberta_name', type=str, default='roberta-base')

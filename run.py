@@ -143,7 +143,7 @@ class Run():
         model.train()
         return loss, results
 
-    def inference(self):
+    def inference(self, write_prob=False):
         dataloader = create_test_dataloaders(self.args)
         # 2. load model
         if self.args.model_name=='bert':
@@ -159,18 +159,27 @@ class Run():
         model.eval()
         # 3. inference
         predictions = []
+        probs = []
         id=[]
         with torch.no_grad():
             for batch in dataloader:
-                pred_label = model(batch,inference=True)
+                pred_label, logits = model(batch,inference=True)
                 predictions.extend(pred_label.cpu().numpy())
+                logit_mask = torch.zeros_like(logits).scatter_(-1, pred_label.unsqueeze(dim=-1), 1)
+                probs.extend(torch.softmax(logits, dim=-1)[logit_mask.bool()].cpu().numpy())
                 id.extend(batch['id'].cpu().numpy())
         # 4. dump results
         with open(self.args.test_output_csv, 'w') as f:
-            f.write(f'rewire_id,label_pred\n')
-            for pred_label, id in zip(self.le.inverse_transform(predictions), id):
+            if write_prob:
+                f.write(f'rewire_id,label_pred,prob\n')
+            else:
+                f.write(f'rewire_id,label_pred\n')
+            for pred_label, prob, id in zip(self.le.inverse_transform(predictions), probs, id):
                 sample_id = 'sexism2022_english-'+str(id)
-                f.write(f'{sample_id},{pred_label}\n')
+                if write_prob:
+                    f.write(f'{sample_id},{pred_label},{prob}\n')
+                else:
+                    f.write(f'{sample_id},{pred_label}\n')
 
     def main(self):
         setup_logging(self.args)
@@ -194,5 +203,5 @@ class Run():
             else:
                 self.train_and_validate()
         else:
-            self.inference()
+            self.inference(write_prob=self.args.write_prob)
         
