@@ -2,3 +2,6 @@ __pycache__/
 /log/
 /pretrain_model/
 /save/
+/TODO.md
+/results/
+/test.ipynb

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, Dataset
 import re
 import nltk
 
+# TODO: 增加[.*]到BERT词表
 def cleanText(text):
     def add_space(matched):
         s = matched.group()
@@ -98,19 +99,41 @@ class TestSexismDataset(Dataset):
             'attention_mask': text_mask,
         }  
 
-def create_train_dataloaders(args,le):
-    raw_data=pd.read_csv(args.train_file)
-    if args.labeltype != 'label_sexist':
-        raw_data=raw_data[raw_data['label_sexist']=='sexist']
-    train_set,val_set =  train_test_split(raw_data, test_size=0.2, stratify=raw_data[args.labeltype])
-    dtrain=TrainSexismDataset(args,train_set,le)
-    dval=TrainSexismDataset(args,val_set,le)
-    train_dataloader = DataLoader(dtrain, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)
-    val_dataloader = DataLoader(dval, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)
+def create_train_dataloaders(args, le, fold_id=-1):
+    if args.k_fold:
+        train_set = pd.read_csv(f'./data/5fold/train{fold_id}.csv')
+        val_set = pd.read_csv(f'./data/5fold/val{fold_id}.csv')
+    else:
+        raw_data=pd.read_csv(args.train_file)
+        if args.labeltype != 'label_sexist':
+            raw_data=raw_data[raw_data['label_sexist']=='sexist']
+        if args.full_train:
+            train_set = raw_data
+        else:
+            train_set,val_set =  train_test_split(raw_data, test_size=0.2, stratify=raw_data[args.labeltype])
+
+    if args.oversampling or args.undersampling:
+        train_pos_set = pd.DataFrame(train_set[train_set['label_sexist']=='sexist'])
+        train_neg_set = pd.DataFrame(train_set[train_set['label_sexist']!='sexist'])
+        dtrain_pos=TrainSexismDataset(args,train_pos_set,le)
+        dtrain_neg=TrainSexismDataset(args,train_neg_set,le)
+        train_pos_dataloader = DataLoader(dtrain_pos, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
+        train_neg_dataloader = DataLoader(dtrain_neg, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
+        train_dataloader = (train_pos_dataloader, train_neg_dataloader)
+    else:
+        dtrain=TrainSexismDataset(args,train_set,le)
+        train_dataloader = DataLoader(dtrain, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)    
+    
+    if args.full_train:
+        val_dataloader = None
+    else:
+        dval=TrainSexismDataset(args,val_set,le)
+        val_dataloader = DataLoader(dval, batch_size=args.batch_size,shuffle=False,num_workers=args.num_workers)
+    
     return train_dataloader, val_dataloader
 
 def create_test_dataloaders(args):
     raw_data=pd.read_csv(args.test_file)
     dtest=TestSexismDataset(args,raw_data)
-    test_dataloader = DataLoader(dtest, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)
+    test_dataloader = DataLoader(dtest, batch_size=args.batch_size,shuffle=False,num_workers=args.num_workers)
     return test_dataloader
