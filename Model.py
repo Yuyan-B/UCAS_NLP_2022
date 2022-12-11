@@ -101,7 +101,7 @@ class Model_MultiTask(nn.Module):
         
         feature_kernel={1: 64, 2: 64, 3: 64, 5: 64, 10: 64}
         self.convs = CNNExtractor(feature_kernel, 768)
-        if self.model_name=='textcnn':
+        if args.model_name=='textcnn':
             mlp_input_shape = sum([feature_num for _, feature_num in feature_kernel.items()])
         else:
             mlp_input_shape=768

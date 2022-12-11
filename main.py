@@ -20,6 +20,7 @@ parser.add_argument('--lambdaC',type=float,default=0.25)
 # ========================= Data Configs ==========================
 parser.add_argument('--train_file',default='/home/lyq/syh/EDOS/data/starting_ki/train_all_tasks.csv')#B\C重采样：替换train_file
 parser.add_argument('--test_file',default='/home/lyq/syh/EDOS/data/dev_task_a_entries.csv')
+parser.add_argument('--val_file',default='/home/lyq/syh/1128/data/oversample_val.csv')
 parser.add_argument('--test_output_csv', type=str, default='./roberta_multitask_resultA.csv')
 parser.add_argument('--batch_size', type = int, default =64)
 parser.add_argument('--num_workers', default=4, type=int, help="num_workers for dataloaders")

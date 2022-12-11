@@ -152,31 +152,35 @@ def create_train_dataloaders(args, le, fold_id=-1):
         train_set = pd.read_csv(f'/home/lyq/syh/EDOS/data/5fold/train{fold_id}.csv')
         val_set = pd.read_csv(f'/home/lyq/syh/EDOS/data/5fold/val{fold_id}.csv')
     else:
-        raw_data=pd.read_csv(args.train_file)
-        # 3 tower不用过滤
-        # if not args.multitask and args.labeltype != 'label_sexist':
-        #         raw_data=raw_data[raw_data['label_sexist']=='sexist']
-        if args.labeltype != 'label_sexist':
-                raw_data=raw_data[raw_data['label_sexist']=='sexist']
-        if args.full_train:
-            train_set = raw_data
-        else:
+        if not args.oversampling:
+            raw_data=pd.read_csv(args.train_file)
+            # 3 tower不用过滤
+            # if not args.multitask and args.labeltype != 'label_sexist':
+            #         raw_data=raw_data[raw_data['label_sexist']=='sexist']
+            if args.labeltype != 'label_sexist':
+                    raw_data=raw_data[raw_data['label_sexist']=='sexist']
             train_set,val_set =  train_test_split(raw_data, test_size=0.2, stratify=raw_data[args.labeltype])
-
-    if args.oversampling or args.undersampling:
-        train_pos_set = pd.DataFrame(train_set[train_set['label_sexist']=='sexist'])
-        train_neg_set = pd.DataFrame(train_set[train_set['label_sexist']!='sexist'])
-        dtrain_pos=TrainSexismDataset(args,train_pos_set,le)
-        dtrain_neg=TrainSexismDataset(args,train_neg_set,le)
-        train_pos_dataloader = DataLoader(dtrain_pos, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
-        train_neg_dataloader = DataLoader(dtrain_neg, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
-        train_dataloader = (train_pos_dataloader, train_neg_dataloader)
-    else:
-        if args.multitask:
-            dtrain=TrainSexismDataset_MultiTask(args,train_set,le)
         else:
-            dtrain=TrainSexismDataset(args,train_set,le)
-        train_dataloader = DataLoader(dtrain, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)    
+            train_set=pd.read_csv(args.train_file)
+            val_set=pd.read_csv(args.val_file)
+            
+        if args.full_train:
+            train_set = pd.read_csv(args.train_file)
+
+    # if args.oversampling or args.undersampling:
+    #     train_pos_set = pd.DataFrame(train_set[train_set['label_sexist']=='sexist'])
+    #     train_neg_set = pd.DataFrame(train_set[train_set['label_sexist']!='sexist'])
+    #     dtrain_pos=TrainSexismDataset(args,train_pos_set,le)
+    #     dtrain_neg=TrainSexismDataset(args,train_neg_set,le)
+    #     train_pos_dataloader = DataLoader(dtrain_pos, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
+    #     train_neg_dataloader = DataLoader(dtrain_neg, batch_size=int(args.batch_size/2),shuffle=True,num_workers=args.num_workers)
+    #     train_dataloader = (train_pos_dataloader, train_neg_dataloader)
+    # else:
+    if args.multitask:
+        dtrain=TrainSexismDataset_MultiTask(args,train_set,le)
+    else:
+        dtrain=TrainSexismDataset(args,train_set,le)
+    train_dataloader = DataLoader(dtrain, batch_size=args.batch_size,shuffle=True,num_workers=args.num_workers)    
     
     if args.full_train:
         val_dataloader = None

@@ -77,47 +77,47 @@ class Run():
         step = 0
         best_score = self.args.best_score
         update=0
-        if self.args.oversampling:
-            it = iter(train_dataloader[0])
-        elif self.args.undersampling:
-            it = iter(train_dataloader[1])
+        # if self.args.oversampling:
+        #     it = iter(train_dataloader[0])
+        # elif self.args.undersampling:
+        #     it = iter(train_dataloader[1])
         for epoch in range(self.args.max_epochs):
             print('----epoch %d----' % epoch)
             losses = []
             if update>=self.args.early_stop:
                 break
-            if self.args.oversampling:
-                for i, neg_batch in enumerate(tqdm(train_dataloader[1])):
-                    # 超采样pos_batch
-                    try:
-                        pos_batch = next(it)
-                    except:
-                        it = iter(train_dataloader[0])
-                        pos_batch = next(it)
-                    # 合并pos_batch和neg_batch
-                    batch = dict()
-                    for k in pos_batch.keys():
-                        batch[k] = torch.cat([pos_batch[k], neg_batch[k]])
-                    train_step()
-                    step += 1
-            elif self.args.undersampling:
-                for i, pos_batch in enumerate(tqdm(train_dataloader[0])):
-                    # 欠采样neg_batch
-                    try:
-                        neg_batch = next(it)
-                    except:
-                        it = iter(train_dataloader[1])
-                        neg_batch = next(it)
-                    # 合并pos_batch和neg_batch
-                    batch = dict()
-                    for k in pos_batch.keys():
-                        batch[k] = torch.cat([pos_batch[k], neg_batch[k]])
-                    train_step()
-                    step += 1
-            else:
-                for i, batch in enumerate(tqdm(train_dataloader)):
-                    train_step()
-                    step += 1
+            # if self.args.oversampling:
+            #     for i, neg_batch in enumerate(tqdm(train_dataloader[1])):
+            #         # 超采样pos_batch
+            #         try:
+            #             pos_batch = next(it)
+            #         except:
+            #             it = iter(train_dataloader[0])
+            #             pos_batch = next(it)
+            #         # 合并pos_batch和neg_batch
+            #         batch = dict()
+            #         for k in pos_batch.keys():
+            #             batch[k] = torch.cat([pos_batch[k], neg_batch[k]])
+            #         train_step()
+            #         step += 1
+            # elif self.args.undersampling:
+            #     for i, pos_batch in enumerate(tqdm(train_dataloader[0])):
+            #         # 欠采样neg_batch
+            #         try:
+            #             neg_batch = next(it)
+            #         except:
+            #             it = iter(train_dataloader[1])
+            #             neg_batch = next(it)
+            #         # 合并pos_batch和neg_batch
+            #         batch = dict()
+            #         for k in pos_batch.keys():
+            #             batch[k] = torch.cat([pos_batch[k], neg_batch[k]])
+            #         train_step()
+            #         step += 1
+            # else:
+            for i, batch in enumerate(tqdm(train_dataloader)):
+                train_step()
+                step += 1
             # 4. validation
             if not self.args.full_train:
                 loss, results = self.validate(model, val_dataloader)
