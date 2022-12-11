@@ -1,3 +1,4 @@
+import os
 import torch
 import logging
 import random
@@ -16,12 +17,15 @@ def setup_seed(args):
     torch.manual_seed(args.seed)
 
 def setup_logging(args):
+    if not os.path.isdir(args.log_path):
+        os.makedirs(args.log_path)
+    file_handler = logging.FileHandler(os.path.join(args.log_path, '%s_%s.log' % (args.model_name, args.labeltype)), 'a')
+    console_handler = logging.StreamHandler()
     logging.basicConfig(
         format='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO,
-        filename='./log/%s_%s.log' % (args.model_name, args.labeltype),
-        filemode='a')
+        handlers=[file_handler, console_handler])
     logger = logging.getLogger(__name__)
     return logger
 
@@ -50,6 +54,35 @@ def evaluate(predictions, labels):
     f1_weight = f1_score(labels, predictions,average='weighted')#
     eval_results = {'f1_macro':f1_macro,'f1_micro':f1_micro,'f1_weight':f1_weight}
     return eval_results
+
+class CNNExtractor(nn.Module):
+    def __init__(self, feature_kernel, input_dim):
+        super(CNNExtractor, self).__init__()
+        self.convs = nn.ModuleList([nn.Conv1d(input_dim, feature_num, kernel_size) for kernel_size, feature_num in feature_kernel.items()])
+
+    def forward(self, input):
+        input = input.permute(0, 2, 1)
+        feature = [conv(input) for conv in self.convs]
+        feature = [torch.max_pool1d(f, f.shape[-1]).squeeze() for f in feature]
+        feature = torch.cat(feature, dim=1)
+        return feature
+
+class MLP(nn.Module):
+    def __init__(self, input_dim, hidden_dims, output_dim, dropout):
+        super(MLP, self).__init__()
+        layers = list()
+        curr_dim = input_dim
+        for hidden_dim in hidden_dims:
+            layers.append(nn.Linear(curr_dim, hidden_dim))
+            layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(p=dropout))
+            curr_dim = hidden_dim
+        layers.append(nn.Linear(curr_dim, output_dim))
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, input):
+        return self.mlp(input)
 
 # FGM
 class FGM:
