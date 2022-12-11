@@ -105,8 +105,7 @@ class TrainSexismDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data.iloc[idx]
 
-        text = cleanText(item['text'])
-        tokens = self.tokenizer(text, max_length=250, padding='max_length', truncation=True)
+        tokens = self.tokenizer(item['text'], max_length=250, padding='max_length', truncation=True)
         text_inputid = torch.tensor(tokens['input_ids'])
         text_mask = torch.tensor(tokens['attention_mask'])
         label = torch.tensor(item['label'])
@@ -136,8 +135,7 @@ class TestSexismDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data.iloc[idx]
 
-        text = cleanText(item['text'])
-        tokens = self.tokenizer(text, max_length=250, padding='max_length', truncation=True)
+        tokens = self.tokenizer(item['text'], max_length=250, padding='max_length', truncation=True)
         text_inputid = torch.tensor(tokens['input_ids'])
         text_mask = torch.tensor(tokens['attention_mask'])
 
